@@ -26,12 +26,11 @@ jobs:
         VERSION=$(npx semantic-release --branches main --dry-run | { grep -i 'the next release version is' || test $? = 1; } | sed -E 's/.* ([[:digit:].]+)$/\1/')
         echo "VERSION=$VERSION" >> $GITHUB_ENV
       id: version
-    - name: tag
+    - uses: rickstaa/action-create-tag@v1
       continue-on-error: true
       env:
         GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
-      run: |
-        git config --global user.email "ryshoooo@gmail.com"
-        git config --global user.name "ryshoooo"
-        git tag -a "${{ env.VERSION }}" -m "Releasing ${{ env.VERSION }}"
-        git push --tags
+      with:
+        tag: ${{ env.VERSION }}
+        msg: "Releasing ${{ env.VERSION }}"
+        github_token: ${{ secrets.PAT_TOKEN }}
