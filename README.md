@@ -28,19 +28,19 @@ adamatics-keycloak depends on:
 
 ### Test and Build Dependencies
 
-- tox
-- pytest
-- pytest-cov
-- wheel
+- [tox](https://tox.readthedocs.io/)
+- [pytest](https://docs.pytest.org/en/latest/)
+- [pytest-cov](https://github.com/pytest-dev/pytest-cov)
+- [wheel](https://github.com/pypa/wheel)
 
 ## Bug reports
 
 Please report bugs and feature requests at
-https://github.com/marcospereirampj/python-keycloak/issues
+https://github.com/adamatics/adamatics-keycloak/issues
 
-## Documentation
+<!-- ## Documentation
 
-The documentation for python-keycloak is available on [readthedocs](http://python-keycloak.readthedocs.io).
+The documentation for adamatics-keycloak is available on [readthedocs](http://python-keycloak.readthedocs.io). -->
 
 ## Contributors
 
@@ -56,6 +56,7 @@ The documentation for python-keycloak is available on [readthedocs](http://pytho
 - [Alex](https://bitbucket.org/alex_zel/)
 - [Ewan Jone](https://bitbucket.org/kisamoto/)
 - [Lukas Martini](https://github.com/lutoma)
+- [Adamatics](https://www.adamatics.com)
 
 ## Usage
 
