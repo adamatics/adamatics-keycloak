@@ -24,6 +24,10 @@ jobs:
         VERSION=$(npx semantic-release --branches main --dry-run | { grep -i 'the next release version is' || test $? = 1; } | sed -E 's/.* ([[:digit:].]+)$/\1/')
         echo "VERSION=$VERSION" >> $GITHUB_ENV
       id: version
+    - uses: rickstaa/action-create-tag@v1
+      with:
+        tag: "${{ env.VERSION }}"
+        message: "Releasing ${{ env.VERSION }}"
     - name: test-version
       run: |
         echo "${{ env.VERSION }}"
