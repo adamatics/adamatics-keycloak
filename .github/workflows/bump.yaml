@@ -29,5 +29,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
       run: |
+        git config --global user.email "ryshoooo@gmail.com"
+        git config --global user.name "ryshoooo"
         git tag -a "${{ env.VERSION }}" -m "Releasing ${{ env.VERSION }}"
         git push --tags
