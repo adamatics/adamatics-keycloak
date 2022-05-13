@@ -10,6 +10,26 @@ def test_keycloak_version():
     assert keycloak.__version__, keycloak.__version__
 
 
+def test_keycloak_admin_bad_init(env):
+    with pytest.raises(TypeError) as err:
+        KeycloakAdmin(
+            server_url=f"http://{env.KEYCLOAK_HOST}:{env.KEYCLOAK_PORT}",
+            username=env.KEYCLOAK_ADMIN,
+            password=env.KEYCLOAK_ADMIN_PASSWORD,
+            auto_refresh_token=1,
+        )
+    assert err.match("Expected a list of strings")
+
+    with pytest.raises(TypeError) as err:
+        KeycloakAdmin(
+            server_url=f"http://{env.KEYCLOAK_HOST}:{env.KEYCLOAK_PORT}",
+            username=env.KEYCLOAK_ADMIN,
+            password=env.KEYCLOAK_ADMIN_PASSWORD,
+            auto_refresh_token=["patch"],
+        )
+    assert err.match("Unexpected method in auto_refresh_token")
+
+
 def test_keycloak_admin_init(env):
     admin = KeycloakAdmin(
         server_url=f"http://{env.KEYCLOAK_HOST}:{env.KEYCLOAK_PORT}",
@@ -29,26 +49,6 @@ def test_keycloak_admin_init(env):
     assert admin.auto_refresh_token == list(), admin.auto_refresh_token
     assert admin.user_realm_name is None, admin.user_realm_name
     assert admin.custom_headers is None, admin.custom_headers
-
-
-def test_keycloak_admin_bad_init(env):
-    with pytest.raises(TypeError) as err:
-        KeycloakAdmin(
-            server_url=f"http://{env.KEYCLOAK_HOST}:{env.KEYCLOAK_PORT}",
-            username=env.KEYCLOAK_ADMIN,
-            password=env.KEYCLOAK_ADMIN_PASSWORD,
-            auto_refresh_token=1,
-        )
-    assert err.match("Expected a list of strings")
-
-    with pytest.raises(TypeError) as err:
-        KeycloakAdmin(
-            server_url=f"http://{env.KEYCLOAK_HOST}:{env.KEYCLOAK_PORT}",
-            username=env.KEYCLOAK_ADMIN,
-            password=env.KEYCLOAK_ADMIN_PASSWORD,
-            auto_refresh_token=["patch"],
-        )
-    assert err.match("Unexpected method in auto_refresh_token")
 
 
 def test_realms(admin: KeycloakAdmin):
