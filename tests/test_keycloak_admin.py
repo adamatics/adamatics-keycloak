@@ -177,3 +177,35 @@ def test_users_pagination(admin: KeycloakAdmin, realm: str):
 
     users = admin.get_users(query={"max": 20})
     assert len(users) == 20, len(users)
+
+
+def test_idps(admin: KeycloakAdmin, realm: str):
+    admin.realm_name = realm
+
+    # Create IDP
+    res = admin.create_idp(
+        payload=dict(
+            providerId="github", alias="github", config=dict(clientId="test", clientSecret="test")
+        )
+    )
+    assert res == b"", res
+
+    # Test listing
+    idps = admin.get_idps()
+    assert len(idps) == 1
+    assert "github" == idps[0]["alias"]
+
+    # Test adding a mapper
+    res = admin.add_mapper_to_idp(
+        idp_alias="github",
+        payload={
+            "identityProviderAlias": "github",
+            "identityProviderMapper": "github-user-attribute-mapper",
+            "name": "test",
+        },
+    )
+    assert res == b"", res
+
+    # Test delete
+    res = admin.delete_idp(idp_alias="github")
+    assert res == dict(), res
