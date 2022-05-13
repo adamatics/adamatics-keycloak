@@ -25,5 +25,8 @@ jobs:
       run: |
         tox -e build
     - name: Publish to PyPi
+      env:
+        TWINE_USERNAME: ${{ secrets.TWINE_USERNAME }}
+        TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
       run: |
         twine upload -u $TWINE_USERNAME -p $TWINE_PASSWORD dist/*
