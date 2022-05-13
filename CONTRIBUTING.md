@@ -22,7 +22,8 @@ python -m pip install -r dev-requirements.txt
 We're utilizing `tox` for most of the testing workflows. However we also have an external dependency on `docker`.
 We're using docker to spin up a local keycloak instance which we run our test cases against. This is to avoid
 a lot of unnecessary mocking and yet have immediate feedback from the actual Keycloak instance. All of the setup
-is done for you with the tox environments, all you need is to have both tox and docker installed.
+is done for you with the tox environments, all you need is to have both tox and docker installed
+(`tox` is included in the `dev-requirements.txt`).
 
 To run the unit tests, simply run
 
@@ -53,7 +54,7 @@ specification](https://www.conventionalcommits.org/en/v1.0.0/) that will allow
 us to automate version bumps and changelog entry creation.
 
 After cloning this repository, you must install the pre-commit hook for
-conventional commits:
+conventional commits (this is included in the `dev-requirements.txt`)
 
 ```sh
 python3 -m venv .venv
@@ -65,7 +66,7 @@ pre-commit install --install-hooks -t pre-commit -t pre-push -t commit-msg
 ## How to contribute
 
 1. Fork this repository, develop and test your changes
-2. Make sure that your changes do not decreate the test coverage
+2. Make sure that your changes do not decrease the test coverage
 3. Make sure you're commits follow the conventional commits
 4. Submit a pull request
 
