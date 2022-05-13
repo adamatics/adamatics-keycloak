@@ -23,10 +23,10 @@ else:
 setup(
     name="adamatics-keycloak",
     version=verstr,
-    url="https://github.com/ryshoooo/python-keycloak",
+    url="https://github.com/adamatics/adamatics-keycloak",
     license="The MIT License",
     author="Marcos Pereira, Richard Nemeth",
-    author_email="marcospereira.mpj@gmail.com,ryshoooo@gmail.com",
+    author_email="ryshoooo@gmail.com",
     keywords="keycloak openid oidc",
     description="adamatics-keycloak is a Python package providing access to the Keycloak API, "
     + "forked from the python-keycloak package.",
