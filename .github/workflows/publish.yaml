@@ -20,7 +20,8 @@ jobs:
         python -m pip install tox wheel twine
     - name: Apply the tag version
       run: |
-        sed -i 's/__version__ = .*/__version__ = "${{ github.ref_name }}"/' keycloak/_version.py
+        version=${{ github.ref_name }}
+        sed -i 's/__version__ = .*/__version__ = "'${version:1}'"/' keycloak/_version.py
     - name: Run build
       run: |
         tox -e build
