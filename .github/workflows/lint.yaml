@@ -1,4 +1,4 @@
-name: Python package linting
+name: Lint
 
 on:
   push:
