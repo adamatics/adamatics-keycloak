@@ -25,6 +25,7 @@ jobs:
       with:
         tag: "${{ env.VERSION }}"
         message: "Releasing ${{ env.VERSION }}"
+        github_token: "${{ secrets.PAT_TOKEN }}"
     - name: test-version
       run: |
         echo "${{ env.VERSION }}"
