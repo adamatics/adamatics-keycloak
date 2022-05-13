@@ -1,8 +1,13 @@
 import pytest
 
+import keycloak
 from keycloak import KeycloakAdmin
 from keycloak.connection import ConnectionManager
 from keycloak.exceptions import KeycloakGetError, KeycloakPostError
+
+
+def test_keycloak_version():
+    assert keycloak.__version__, keycloak.__version__
 
 
 def test_keycloak_admin_init(env):
