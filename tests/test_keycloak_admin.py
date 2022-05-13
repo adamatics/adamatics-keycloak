@@ -150,6 +150,10 @@ def test_users(admin: KeycloakAdmin, realm: str):
     usernames = [x["username"] for x in users]
     assert "test" in usernames
 
+    # Test users counts
+    count = admin.users_count()
+    assert count == 1, count
+
     # Test delete user
     res = admin.delete_user(user_id=user_id)
     assert res == dict(), res
