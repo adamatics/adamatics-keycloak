@@ -32,3 +32,12 @@ def realm(admin: KeycloakAdmin) -> str:
     admin.create_realm(payload={"realm": realm_name})
     yield realm_name
     admin.delete_realm(realm_name=realm_name)
+
+
+@pytest.fixture
+def user(admin: KeycloakAdmin, realm: str) -> str:
+    admin.realm_name = realm
+    username = str(uuid.uuid4())
+    user_id = admin.create_user(payload={"username": username, "email": f"{username}@test.test"})
+    yield user_id
+    admin.delete_user(user_id=user_id)

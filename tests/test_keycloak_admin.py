@@ -154,6 +154,18 @@ def test_users(admin: KeycloakAdmin, realm: str):
     count = admin.users_count()
     assert count == 1, count
 
+    # Test user groups
+    groups = admin.get_user_groups(user_id=user["id"])
+    assert len(groups) == 0
+
+    # Test logout
+    res = admin.user_logout(user_id=user["id"])
+    assert res == dict(), res
+
+    # Test consents
+    res = admin.user_consents(user_id=user["id"])
+    assert len(res) == 0, res
+
     # Test delete user
     res = admin.delete_user(user_id=user_id)
     assert res == dict(), res
@@ -208,4 +220,16 @@ def test_idps(admin: KeycloakAdmin, realm: str):
 
     # Test delete
     res = admin.delete_idp(idp_alias="github")
+    assert res == dict(), res
+
+
+def test_user_credentials(admin: KeycloakAdmin, user: str):
+    res = admin.set_user_password(user_id=user, password="booya", temporary=True)
+    assert res == dict(), res
+
+    credentials = admin.get_credentials(user_id=user)
+    assert len(credentials) == 1
+    assert credentials[0]["type"] == "password", credentials
+
+    res = admin.delete_credential(user_id=user, credential_id=credentials[0]["id"])
     assert res == dict(), res
