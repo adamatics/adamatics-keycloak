@@ -124,6 +124,7 @@ class KeycloakAdmin:
     _server_url = None
     _username = None
     _password = None
+    _totp = None
     _realm_name = None
     _client_id = None
     _verify = None
@@ -139,6 +140,7 @@ class KeycloakAdmin:
         server_url,
         username=None,
         password=None,
+        totp=None,
         realm_name="master",
         client_id="admin-cli",
         verify=True,
@@ -152,6 +154,7 @@ class KeycloakAdmin:
         :param server_url: Keycloak server url
         :param username: admin username
         :param password: admin password
+        :param totp: Time based OTP
         :param realm_name: realm name
         :param client_id: client id
         :param verify: True if want check connection SSL
@@ -165,6 +168,7 @@ class KeycloakAdmin:
         self.server_url = server_url
         self.username = username
         self.password = password
+        self.totp = totp
         self.realm_name = realm_name
         self.client_id = client_id
         self.verify = verify
@@ -239,6 +243,14 @@ class KeycloakAdmin:
     @password.setter
     def password(self, value):
         self._password = value
+
+    @property
+    def totp(self):
+        return self._totp
+
+    @totp.setter
+    def totp(self, value):
+        self._totp = value
 
     @property
     def token(self):
@@ -2474,7 +2486,7 @@ class KeycloakAdmin:
 
         if self.username and self.password:
             self.token = self.keycloak_openid.token(
-                self.username, self.password, grant_type=grant_type
+                self.username, self.password, grant_type=grant_type, totp=self.totp
             )
 
             headers = {
