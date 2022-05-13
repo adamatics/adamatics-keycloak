@@ -23,5 +23,6 @@
 
 from .keycloak_admin import KeycloakAdmin
 from .keycloak_openid import KeycloakOpenID
+from ._version import __version__
 
-__all__ = ["KeycloakAdmin", "KeycloakOpenID"]
+__all__ = ["KeycloakAdmin", "KeycloakOpenID", "__version__"]

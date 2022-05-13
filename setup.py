@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import re
 from setuptools import setup
 
 with open("README.md", "r") as fh:
@@ -11,9 +11,18 @@ with open("requirements.txt", "r") as fh:
 with open("dev-requirements.txt", "r") as fh:
     dev_reqs = fh.read().split("\n")
 
+VERSIONFILE = "keycloak/_version.py"
+verstrline = open(VERSIONFILE, "rt").read()
+VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
+mo = re.search(VSRE, verstrline, re.M)
+if mo:
+    verstr = mo.group(1)
+else:
+    raise RuntimeError("Unable to find version string in %s." % (VERSIONFILE,))
+
 setup(
     name="adamatics-keycloak",
-    version="0.27.0",
+    version=verstr,
     url="https://github.com/ryshoooo/python-keycloak",
     license="The MIT License",
     author="Marcos Pereira, Richard Nemeth",
