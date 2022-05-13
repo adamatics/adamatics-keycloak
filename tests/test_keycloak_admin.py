@@ -160,3 +160,20 @@ def test_users(admin: KeycloakAdmin, realm: str):
     with pytest.raises(KeycloakGetError) as err:
         admin.get_user(user_id=user_id)
     err.match('404: b\'{"error":"User not found"}\'')
+
+
+def test_users_pagination(admin: KeycloakAdmin, realm: str):
+    admin.realm_name = realm
+
+    for ind in range(admin.PAGE_SIZE + 50):
+        username = f"user_{ind}"
+        admin.create_user(payload={"username": username, "email": f"{username}@test.test"})
+
+    users = admin.get_users()
+    assert len(users) == admin.PAGE_SIZE + 50, len(users)
+
+    users = admin.get_users(query={"first": 100})
+    assert len(users) == 50, len(users)
+
+    users = admin.get_users(query={"max": 20})
+    assert len(users) == 20, len(users)
