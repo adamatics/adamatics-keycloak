@@ -25,6 +25,7 @@ jobs:
         echo "VERSION=$VERSION" >> $GITHUB_ENV
       id: version
     - uses: rickstaa/action-create-tag@v1
+      continue-on-error: true
       with:
         tag: "${{ env.VERSION }}"
         message: "Releasing ${{ env.VERSION }}"
