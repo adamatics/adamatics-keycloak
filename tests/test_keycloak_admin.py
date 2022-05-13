@@ -24,10 +24,31 @@ def test_keycloak_admin_init(env):
     assert admin.verify, admin.verify
     assert admin.username == env.KEYCLOAK_ADMIN, admin.username
     assert admin.password == env.KEYCLOAK_ADMIN_PASSWORD, admin.password
+    assert admin.totp is None, admin.totp
     assert admin.token is not None, admin.token
     assert admin.auto_refresh_token == list(), admin.auto_refresh_token
     assert admin.user_realm_name is None, admin.user_realm_name
     assert admin.custom_headers is None, admin.custom_headers
+
+
+def test_keycloak_admin_bad_init(env):
+    with pytest.raises(TypeError) as err:
+        KeycloakAdmin(
+            server_url=f"http://{env.KEYCLOAK_HOST}:{env.KEYCLOAK_PORT}",
+            username=env.KEYCLOAK_ADMIN,
+            password=env.KEYCLOAK_ADMIN_PASSWORD,
+            auto_refresh_token=1,
+        )
+    assert err.match("Expected a list of strings")
+
+    with pytest.raises(TypeError) as err:
+        KeycloakAdmin(
+            server_url=f"http://{env.KEYCLOAK_HOST}:{env.KEYCLOAK_PORT}",
+            username=env.KEYCLOAK_ADMIN,
+            password=env.KEYCLOAK_ADMIN_PASSWORD,
+            auto_refresh_token=["patch"],
+        )
+    assert err.match("Unexpected method in auto_refresh_token")
 
 
 def test_realms(admin: KeycloakAdmin):
@@ -77,6 +98,18 @@ def test_realms(admin: KeycloakAdmin):
     with pytest.raises(KeycloakGetError) as err:
         admin.get_realm(realm_name="test")
     assert err.match('404: b\'{"error":"Realm not found."}\'')
+
+
+def test_import_export_realms(admin: KeycloakAdmin, realm: str):
+    admin.realm_name = realm
+
+    realm_export = admin.export_realm(export_clients=True, export_groups_and_role=True)
+    assert realm_export != dict(), realm_export
+
+    admin.delete_realm(realm_name=realm)
+    admin.realm_name = "master"
+    res = admin.import_realm(payload=realm_export)
+    assert res == b"", res
 
 
 def test_users(admin: KeycloakAdmin, realm: str):
