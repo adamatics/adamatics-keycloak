@@ -26,4 +26,4 @@ jobs:
         tox -e build
     - name: Publish to PyPi
       run: |
-        twine upload dist/*
+        twine upload -u $TWINE_USERNAME -p $TWINE_PASSWORD dist/*
