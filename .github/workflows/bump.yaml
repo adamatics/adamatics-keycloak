@@ -17,5 +17,4 @@ jobs:
         node-version: 18
     - name: determine-version
       run: |
-        npx semantic-release --branches main --dry-run | \
-        { grep -i 'the next release version is' || test $? = 1; } | sed -E 's/.* ([[:digit:].]+)$/\1/')
+        npx semantic-release --branches main --dry-run | { grep -i 'the next release version is' || test $? = 1; } | sed -E 's/.* ([[:digit:].]+)$/\1/')
