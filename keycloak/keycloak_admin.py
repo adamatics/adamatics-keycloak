@@ -641,25 +641,6 @@ class KeycloakAdmin:
         data_raw = self.raw_get(URL_ADMIN_USER_CREDENTIALS.format(**params_path))
         return raise_error_from_response(data_raw, KeycloakGetError)
 
-    def get_credential(self, user_id, credential_id):
-        """
-        Get credential of the user.
-
-        CredentialRepresentation
-        https://www.keycloak.org/docs-api/18.0/rest-api/index.html#_credentialrepresentation
-
-        :param: user_id: user id
-        :param: credential_id: credential id
-        :return: Keycloak server response (ClientRepresentation)
-        """
-        params_path = {
-            "realm-name": self.realm_name,
-            "id": user_id,
-            "credential_id": credential_id,
-        }
-        data_raw = self.raw_get(URL_ADMIN_USER_CREDENTIAL.format(**params_path))
-        return raise_error_from_response(data_raw, KeycloakGetError)
-
     def delete_credential(self, user_id, credential_id):
         """
         Delete credential of the user.
@@ -679,7 +660,7 @@ class KeycloakAdmin:
         data_raw = self.raw_delete(URL_ADMIN_USER_CREDENTIAL.format(**params_path))
         return raise_error_from_response(data_raw, KeycloakGetError)
 
-    def logout(self, user_id):
+    def user_logout(self, user_id):
         """
         Logs out user.
 
@@ -692,7 +673,7 @@ class KeycloakAdmin:
         data_raw = self.raw_post(URL_ADMIN_USER_LOGOUT.format(**params_path), data="")
         return raise_error_from_response(data_raw, KeycloakPostError, expected_codes=[204])
 
-    def consents_user(self, user_id):
+    def user_consents(self, user_id):
         """
         Get consents granted by the user
 
@@ -1511,7 +1492,7 @@ class KeycloakAdmin:
         """
 
         params_path = {"realm-name": self.realm_name, "role-name": role_name}
-        data_raw = self.connection.raw_put(
+        data_raw = self.raw_put(
             URL_ADMIN_REALM_ROLES_ROLE_BY_NAME.format(**params_path), data=json.dumps(payload)
         )
         return raise_error_from_response(data_raw, KeycloakGetError, expected_codes=[204])
@@ -1524,9 +1505,7 @@ class KeycloakAdmin:
         """
 
         params_path = {"realm-name": self.realm_name, "role-name": role_name}
-        data_raw = self.connection.raw_delete(
-            URL_ADMIN_REALM_ROLES_ROLE_BY_NAME.format(**params_path)
-        )
+        data_raw = self.raw_delete(URL_ADMIN_REALM_ROLES_ROLE_BY_NAME.format(**params_path))
         return raise_error_from_response(data_raw, KeycloakGetError, expected_codes=[204])
 
     def add_composite_realm_roles_to_role(self, role_name, roles):
@@ -2539,7 +2518,7 @@ class KeycloakAdmin:
         :return: UserSessionRepresentation
         """
         params_path = {"realm-name": self.realm_name, "id": client_id}
-        data_raw = self.connection.raw_get(URL_ADMIN_CLIENT_ALL_SESSIONS.format(**params_path))
+        data_raw = self.raw_get(URL_ADMIN_CLIENT_ALL_SESSIONS.format(**params_path))
         return raise_error_from_response(data_raw, KeycloakGetError)
 
     def delete_user_realm_role(self, user_id, payload):
@@ -2549,7 +2528,7 @@ class KeycloakAdmin:
 
         """
         params_path = {"realm-name": self.realm_name, "id": str(user_id)}
-        data_raw = self.connection.raw_delete(
+        data_raw = self.raw_delete(
             URL_ADMIN_DELETE_USER_ROLE.format(**params_path), data=json.dumps(payload)
         )
         return raise_error_from_response(data_raw, KeycloakGetError, expected_codes=[204])
