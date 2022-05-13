@@ -2,7 +2,7 @@
 
 Welcome to the Adamatics Keycloak contributing guidelines. We are all more than happy to receive
 any contributions to the repository and want to thank you in advance for your contributions!
-This document outliens the process and the guidelines on how contributions work for this repository.
+This document outlines the process and the guidelines on how contributions work for this repository.
 
 ## Setting up the dev environment
 
