@@ -1,11 +1,15 @@
 name: Bump version
 
+# on:
+#   workflow_run:
+#     workflows: [ "Lint" ]
+#     branches: [ main ]
+#     types:
+#       - completed
+
 on:
-  workflow_run:
-    workflows: [ "Lint" ]
+  push:
     branches: [ main ]
-    types:
-      - completed
 
 jobs:
   tag-version:
