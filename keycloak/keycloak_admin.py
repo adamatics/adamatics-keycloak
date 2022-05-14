@@ -1240,14 +1240,22 @@ class KeycloakAdmin:
 
         :param skip_exists: If true then do not raise an error if client already exists
         :param payload: ClientRepresentation
-        :return:  Keycloak server response (UserRepresentation)
+        :return: Client ID
         """
+
+        if skip_exists:
+            client_id = self.get_client_id(client_name=payload["name"])
+
+            if client_id is not None:
+                return client_id
 
         params_path = {"realm-name": self.realm_name}
         data_raw = self.raw_post(URL_ADMIN_CLIENTS.format(**params_path), data=json.dumps(payload))
-        return raise_error_from_response(
+        raise_error_from_response(
             data_raw, KeycloakPostError, expected_codes=[201], skip_exists=skip_exists
         )
+        _last_slash_idx = data_raw.headers["Location"].rindex("/")
+        return data_raw.headers["Location"][_last_slash_idx + 1 :]  # noqa: E203
 
     def update_client(self, client_id, payload):
         """
