@@ -715,7 +715,7 @@ class KeycloakAdmin:
         data_raw = self.raw_post(
             URL_ADMIN_USER_FEDERATED_IDENTITY.format(**params_path), data=json.dumps(payload)
         )
-        raise_error_from_response(data_raw, KeycloakPostError, expected_codes=[201])
+        return raise_error_from_response(data_raw, KeycloakPostError, expected_codes=[201, 204])
 
     def delete_user_social_login(self, user_id, provider_id):
 
