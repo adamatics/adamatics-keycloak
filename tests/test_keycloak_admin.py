@@ -514,3 +514,187 @@ def test_groups(admin: KeycloakAdmin, user: str):
     with pytest.raises(KeycloakDeleteError) as err:
         admin.delete_group(group_id="does-not-exist")
     assert err.match('404: b\'{"error":"Could not find group by id"}\''), err
+
+
+def test_clients(admin: KeycloakAdmin, realm: str):
+    admin.realm_name = realm
+
+    # Test get clients
+    clients = admin.get_clients()
+    assert len(clients) == 6, clients
+    assert {x["name"] for x in clients} == set(
+        [
+            "${client_admin-cli}",
+            "${client_security-admin-console}",
+            "${client_account-console}",
+            "${client_broker}",
+            "${client_account}",
+            "${client_realm-management}",
+        ]
+    ), clients
+
+    # Test create client
+    client_id = admin.create_client(payload={"name": "test-client", "clientId": "test-client"})
+    assert client_id, client_id
+
+    with pytest.raises(KeycloakPostError) as err:
+        admin.create_client(payload={"name": "test-client", "clientId": "test-client"})
+    assert err.match('409: b\'{"errorMessage":"Client test-client already exists"}\''), err
+
+    client_id_2 = admin.create_client(
+        payload={"name": "test-client", "clientId": "test-client"}, skip_exists=True
+    )
+    assert client_id == client_id_2, client_id_2
+
+    # Test get client
+    res = admin.get_client(client_id=client_id)
+    assert res["clientId"] == "test-client", res
+    assert res["name"] == "test-client", res
+    assert res["id"] == client_id, res
+
+    with pytest.raises(KeycloakGetError) as err:
+        admin.get_client(client_id="does-not-exist")
+    assert err.match('404: b\'{"error":"Could not find client"}\'')
+    assert len(admin.get_clients()) == 7
+
+    # Test get client id
+    assert admin.get_client_id(client_name="test-client") == client_id
+    assert admin.get_client_id(client_name="does-not-exist") is None
+
+    # Test update client
+    res = admin.update_client(client_id=client_id, payload={"name": "test-client-change"})
+    assert res == dict(), res
+
+    with pytest.raises(KeycloakPutError) as err:
+        admin.update_client(client_id="does-not-exist", payload={"name": "test-client-change"})
+    assert err.match('404: b\'{"error":"Could not find client"}\'')
+
+    # Test authz
+    auth_client_id = admin.create_client(
+        payload={
+            "name": "authz-client",
+            "clientId": "authz-client",
+            "authorizationServicesEnabled": True,
+            "serviceAccountsEnabled": True,
+        }
+    )
+    res = admin.get_client_authz_settings(client_id=auth_client_id)
+    assert res["allowRemoteResourceManagement"]
+    assert res["decisionStrategy"] == "UNANIMOUS"
+    assert len(res["policies"]) >= 0
+
+    with pytest.raises(KeycloakGetError) as err:
+        admin.get_client_authz_settings(client_id=client_id)
+    assert err.match('500: b\'{"error":"HTTP 500 Internal Server Error"}\'')
+
+    # Authz resources
+    res = admin.get_client_authz_resources(client_id=auth_client_id)
+    assert len(res) == 1
+    assert res[0]["name"] == "Default Resource"
+
+    with pytest.raises(KeycloakGetError) as err:
+        admin.get_client_authz_resources(client_id=client_id)
+    assert err.match('500: b\'{"error":"unknown_error"}\'')
+
+    res = admin.create_client_authz_resource(
+        client_id=auth_client_id, payload={"name": "test-resource"}
+    )
+    assert res["name"] == "test-resource", res
+    test_resource_id = res["_id"]
+
+    with pytest.raises(KeycloakPostError) as err:
+        admin.create_client_authz_resource(
+            client_id=auth_client_id, payload={"name": "test-resource"}
+        )
+    assert err.match('409: b\'{"error":"invalid_request"')
+    assert admin.create_client_authz_resource(
+        client_id=auth_client_id, payload={"name": "test-resource"}, skip_exists=True
+    ) == {"msg": "Already exists"}
+
+    res = admin.get_client_authz_resources(client_id=auth_client_id)
+    assert len(res) == 2
+    assert {x["name"] for x in res} == {"Default Resource", "test-resource"}
+
+    # Authz policies
+    res = admin.get_client_authz_policies(client_id=auth_client_id)
+    assert len(res) == 1, res
+    assert res[0]["name"] == "Default Policy"
+    assert len(admin.get_client_authz_policies(client_id=client_id)) == 1
+
+    with pytest.raises(KeycloakGetError) as err:
+        admin.get_client_authz_policies(client_id="does-not-exist")
+    assert err.match('404: b\'{"error":"Could not find client"}\'')
+
+    role_id = admin.get_realm_role(role_name="offline_access")["id"]
+    res = admin.create_client_authz_role_based_policy(
+        client_id=auth_client_id,
+        payload={"name": "test-authz-rb-policy", "roles": [{"id": role_id}]},
+    )
+    assert res["name"] == "test-authz-rb-policy", res
+
+    with pytest.raises(KeycloakPostError) as err:
+        admin.create_client_authz_role_based_policy(
+            client_id=auth_client_id,
+            payload={"name": "test-authz-rb-policy", "roles": [{"id": role_id}]},
+        )
+    assert err.match('409: b\'{"error":"Policy with name')
+    assert admin.create_client_authz_role_based_policy(
+        client_id=auth_client_id,
+        payload={"name": "test-authz-rb-policy", "roles": [{"id": role_id}]},
+        skip_exists=True,
+    ) == {"msg": "Already exists"}
+    assert len(admin.get_client_authz_policies(client_id=auth_client_id)) == 2
+
+    # Test authz permissions
+    res = admin.get_client_authz_permissions(client_id=auth_client_id)
+    assert len(res) == 1, res
+    assert res[0]["name"] == "Default Permission"
+    assert len(admin.get_client_authz_permissions(client_id=client_id)) == 1
+
+    with pytest.raises(KeycloakGetError) as err:
+        admin.get_client_authz_permissions(client_id="does-not-exist")
+    assert err.match('404: b\'{"error":"Could not find client"}\'')
+
+    res = admin.create_client_authz_resource_based_permission(
+        client_id=auth_client_id,
+        payload={"name": "test-permission-rb", "resources": [test_resource_id]},
+    )
+    assert res, res
+    assert res["name"] == "test-permission-rb"
+    assert res["resources"] == [test_resource_id]
+
+    with pytest.raises(KeycloakPostError) as err:
+        admin.create_client_authz_resource_based_permission(
+            client_id=auth_client_id,
+            payload={"name": "test-permission-rb", "resources": [test_resource_id]},
+        )
+    assert err.match('409: b\'{"error":"Policy with name')
+    assert admin.create_client_authz_resource_based_permission(
+        client_id=auth_client_id,
+        payload={"name": "test-permission-rb", "resources": [test_resource_id]},
+        skip_exists=True,
+    ) == {"msg": "Already exists"}
+    assert len(admin.get_client_authz_permissions(client_id=auth_client_id)) == 2
+
+    # Test authz scopes
+    res = admin.get_client_authz_scopes(client_id=auth_client_id)
+    assert len(res) == 0, res
+
+    with pytest.raises(KeycloakGetError) as err:
+        admin.get_client_authz_scopes(client_id=client_id)
+    assert err.match('500: b\'{"error":"unknown_error"}\'')
+
+    # Test service account user
+    res = admin.get_client_service_account_user(client_id=auth_client_id)
+    assert res["username"] == "service-account-authz-client", res
+
+    with pytest.raises(KeycloakGetError) as err:
+        admin.get_client_service_account_user(client_id=client_id)
+    assert err.match('400: b\'{"error":"unknown_error"}\'')
+
+    # Test delete client
+    res = admin.delete_client(client_id=auth_client_id)
+    assert res == dict(), res
+    with pytest.raises(KeycloakDeleteError) as err:
+        admin.delete_client(client_id=auth_client_id)
+    assert err.match('404: b\'{"error":"Could not find client"}\'')
