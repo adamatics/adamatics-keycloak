@@ -3,7 +3,12 @@ import pytest
 import keycloak
 from keycloak import KeycloakAdmin
 from keycloak.connection import ConnectionManager
-from keycloak.exceptions import KeycloakGetError, KeycloakPostError
+from keycloak.exceptions import (
+    KeycloakDeleteError,
+    KeycloakGetError,
+    KeycloakPostError,
+    KeycloakPutError,
+)
 
 
 def test_keycloak_version():
@@ -74,6 +79,11 @@ def test_realms(admin: KeycloakAdmin):
     res = admin.get_realm(realm_name="test")
     assert res["realm"] == "test"
 
+    # Get non-existing realm
+    with pytest.raises(KeycloakGetError) as err:
+        admin.get_realm(realm_name="non-existent")
+    assert err.match('404: b\'{"error":"Realm not found."}\'')
+
     # Update realm
     res = admin.update_realm(realm_name="test", payload={"accountTheme": "test"})
     assert res == dict(), res
@@ -82,6 +92,11 @@ def test_realms(admin: KeycloakAdmin):
     res = admin.get_realm(realm_name="test")
     assert res["realm"] == "test"
     assert res["accountTheme"] == "test"
+
+    # Update wrong payload
+    with pytest.raises(KeycloakPutError) as err:
+        admin.update_realm(realm_name="test", payload={"wrong": "payload"})
+    assert err.match('400: b\'{"error":"Unrecognized field')
 
     # Check that get realms returns both realms
     realms = admin.get_realms()
@@ -99,6 +114,11 @@ def test_realms(admin: KeycloakAdmin):
         admin.get_realm(realm_name="test")
     assert err.match('404: b\'{"error":"Realm not found."}\'')
 
+    # Delete non-existing realm
+    with pytest.raises(KeycloakDeleteError) as err:
+        admin.delete_realm(realm_name="non-existent")
+    assert err.match('404: b\'{"error":"Realm not found."}\'')
+
 
 def test_import_export_realms(admin: KeycloakAdmin, realm: str):
     admin.realm_name = realm
@@ -110,6 +130,11 @@ def test_import_export_realms(admin: KeycloakAdmin, realm: str):
     admin.realm_name = "master"
     res = admin.import_realm(payload=realm_export)
     assert res == b"", res
+
+    # Test bad import
+    with pytest.raises(KeycloakPostError) as err:
+        admin.import_realm(payload=dict())
+    assert err.match('500: b\'{"error":"unknown_error"}\'')
 
 
 def test_users(admin: KeycloakAdmin, realm: str):
@@ -145,6 +170,11 @@ def test_users(admin: KeycloakAdmin, realm: str):
     user = admin.get_user(user_id=user_id)
     assert user["firstName"] == "Test"
 
+    # Test update user fail
+    with pytest.raises(KeycloakPutError) as err:
+        admin.update_user(user_id=user_id, payload={"wrong": "payload"})
+    assert err.match('400: b\'{"error":"Unrecognized field')
+
     # Test get users again
     users = admin.get_users()
     usernames = [x["username"] for x in users]
@@ -158,13 +188,28 @@ def test_users(admin: KeycloakAdmin, realm: str):
     groups = admin.get_user_groups(user_id=user["id"])
     assert len(groups) == 0
 
+    # Test user groups bad id
+    with pytest.raises(KeycloakGetError) as err:
+        admin.get_user_groups(user_id="does-not-exist")
+    assert err.match('404: b\'{"error":"User not found"}\'')
+
     # Test logout
     res = admin.user_logout(user_id=user["id"])
     assert res == dict(), res
 
+    # Test logout fail
+    with pytest.raises(KeycloakPostError) as err:
+        admin.user_logout(user_id="non-existent-id")
+    assert err.match('404: b\'{"error":"User not found"}\'')
+
     # Test consents
     res = admin.user_consents(user_id=user["id"])
     assert len(res) == 0, res
+
+    # Test consents fail
+    with pytest.raises(KeycloakGetError) as err:
+        admin.user_consents(user_id="non-existent-id")
+    assert err.match('404: b\'{"error":"User not found"}\'')
 
     # Test delete user
     res = admin.delete_user(user_id=user_id)
@@ -172,6 +217,11 @@ def test_users(admin: KeycloakAdmin, realm: str):
     with pytest.raises(KeycloakGetError) as err:
         admin.get_user(user_id=user_id)
     err.match('404: b\'{"error":"User not found"}\'')
+
+    # Test delete fail
+    with pytest.raises(KeycloakDeleteError) as err:
+        admin.delete_user(user_id="non-existent-id")
+    assert err.match('404: b\'{"error":"User not found"}\'')
 
 
 def test_users_pagination(admin: KeycloakAdmin, realm: str):
@@ -202,6 +252,11 @@ def test_idps(admin: KeycloakAdmin, realm: str):
     )
     assert res == b"", res
 
+    # Test create idp fail
+    with pytest.raises(KeycloakPostError) as err:
+        admin.create_idp(payload={"providerId": "does-not-exist", "alias": "something"})
+    assert err.match("Invalid identity provider id"), err
+
     # Test listing
     idps = admin.get_idps()
     assert len(idps) == 1
@@ -218,18 +273,101 @@ def test_idps(admin: KeycloakAdmin, realm: str):
     )
     assert res == b"", res
 
+    # Test mapper fail
+    with pytest.raises(KeycloakPostError) as err:
+        admin.add_mapper_to_idp(idp_alias="does-no-texist", payload=dict())
+    assert err.match('404: b\'{"error":"HTTP 404 Not Found"}\'')
+
     # Test delete
     res = admin.delete_idp(idp_alias="github")
     assert res == dict(), res
+
+    # Test delete fail
+    with pytest.raises(KeycloakDeleteError) as err:
+        admin.delete_idp(idp_alias="does-not-exist")
+    assert err.match('404: b\'{"error":"HTTP 404 Not Found"}\'')
 
 
 def test_user_credentials(admin: KeycloakAdmin, user: str):
     res = admin.set_user_password(user_id=user, password="booya", temporary=True)
     assert res == dict(), res
 
+    # Test user password set fail
+    with pytest.raises(KeycloakPutError) as err:
+        admin.set_user_password(user_id="does-not-exist", password="")
+    assert err.match('404: b\'{"error":"User not found"}\'')
+
     credentials = admin.get_credentials(user_id=user)
     assert len(credentials) == 1
     assert credentials[0]["type"] == "password", credentials
 
+    # Test get credentials fail
+    with pytest.raises(KeycloakGetError) as err:
+        admin.get_credentials(user_id="does-not-exist")
+    assert err.match('404: b\'{"error":"User not found"}\'')
+
     res = admin.delete_credential(user_id=user, credential_id=credentials[0]["id"])
     assert res == dict(), res
+
+    # Test delete fail
+    with pytest.raises(KeycloakDeleteError) as err:
+        admin.delete_credential(user_id=user, credential_id="does-not-exist")
+    assert err.match('404: b\'{"error":"Credential not found"}\'')
+
+
+def test_social_logins(admin: KeycloakAdmin, user: str):
+    res = admin.add_user_social_login(
+        user_id=user, provider_id="gitlab", provider_userid="test", provider_username="test"
+    )
+    assert res == dict(), res
+    admin.add_user_social_login(
+        user_id=user, provider_id="github", provider_userid="test", provider_username="test"
+    )
+    assert res == dict(), res
+
+    # Test add social login fail
+    with pytest.raises(KeycloakPostError) as err:
+        admin.add_user_social_login(
+            user_id="does-not-exist",
+            provider_id="does-not-exist",
+            provider_userid="test",
+            provider_username="test",
+        )
+    assert err.match('404: b\'{"error":"User not found"}\'')
+
+    res = admin.get_user_social_logins(user_id=user)
+    assert res == list(), res
+
+    # Test get social logins fail
+    with pytest.raises(KeycloakGetError) as err:
+        admin.get_user_social_logins(user_id="does-not-exist")
+    assert err.match('404: b\'{"error":"User not found"}\'')
+
+    res = admin.delete_user_social_login(user_id=user, provider_id="gitlab")
+    assert res == {}, res
+
+    res = admin.delete_user_social_login(user_id=user, provider_id="github")
+    assert res == {}, res
+
+    with pytest.raises(KeycloakDeleteError) as err:
+        admin.delete_user_social_login(user_id=user, provider_id="instagram")
+    assert err.match('404: b\'{"error":"Link not found"}\''), err
+
+
+def test_server_info(admin: KeycloakAdmin):
+    info = admin.get_server_info()
+    assert set(info.keys()) == {
+        "systemInfo",
+        "memoryInfo",
+        "profileInfo",
+        "themes",
+        "socialProviders",
+        "identityProviders",
+        "providers",
+        "protocolMapperTypes",
+        "builtinProtocolMappers",
+        "clientInstallations",
+        "componentTypes",
+        "passwordPolicies",
+        "enums",
+    }, info.keys()
