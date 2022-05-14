@@ -64,6 +64,14 @@ class KeycloakPostError(KeycloakOperationError):
     pass
 
 
+class KeycloakPutError(KeycloakOperationError):
+    pass
+
+
+class KeycloakDeleteError(KeycloakOperationError):
+    pass
+
+
 class KeycloakSecretNotFound(KeycloakOperationError):
     pass
 
