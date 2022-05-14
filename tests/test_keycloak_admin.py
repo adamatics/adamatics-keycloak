@@ -371,3 +371,146 @@ def test_server_info(admin: KeycloakAdmin):
         "passwordPolicies",
         "enums",
     }, info.keys()
+
+
+def test_groups(admin: KeycloakAdmin, user: str):
+    # Test get groups
+    groups = admin.get_groups()
+    assert len(groups) == 0
+
+    # Test create group
+    group_id = admin.create_group(payload={"name": "main-group"})
+    assert group_id is not None, group_id
+
+    # Test create subgroups
+    subgroup_id_1 = admin.create_group(payload={"name": "subgroup-1"}, parent=group_id)
+    subgroup_id_2 = admin.create_group(payload={"name": "subgroup-2"}, parent=group_id)
+
+    # Test create group fail
+    with pytest.raises(KeycloakPostError) as err:
+        admin.create_group(payload={"name": "subgroup-1"}, parent=group_id)
+    assert err.match('409: b\'{"error":"unknown_error"}\''), err
+
+    # Test skip exists OK
+    subgroup_id_1_eq = admin.create_group(
+        payload={"name": "subgroup-1"}, parent=group_id, skip_exists=True
+    )
+    assert subgroup_id_1_eq is None
+
+    # Test get groups again
+    groups = admin.get_groups()
+    assert len(groups) == 1, groups
+    assert len(groups[0]["subGroups"]) == 2, groups["subGroups"]
+    assert groups[0]["id"] == group_id
+    assert {x["id"] for x in groups[0]["subGroups"]} == {subgroup_id_1, subgroup_id_2}
+
+    # Test get groups query
+    groups = admin.get_groups(query={"max": 10})
+    assert len(groups) == 1, groups
+    assert len(groups[0]["subGroups"]) == 2, groups["subGroups"]
+    assert groups[0]["id"] == group_id
+    assert {x["id"] for x in groups[0]["subGroups"]} == {subgroup_id_1, subgroup_id_2}
+
+    # Test get group
+    res = admin.get_group(group_id=subgroup_id_1)
+    assert res["id"] == subgroup_id_1, res
+    assert res["name"] == "subgroup-1"
+    assert res["path"] == "/main-group/subgroup-1"
+
+    # Test get group fail
+    with pytest.raises(KeycloakGetError) as err:
+        admin.get_group(group_id="does-not-exist")
+    assert err.match('404: b\'{"error":"Could not find group by id"}\''), err
+
+    # Create 1 more subgroup
+    subsubgroup_id_1 = admin.create_group(payload={"name": "subsubgroup-1"}, parent=subgroup_id_2)
+    main_group = admin.get_group(group_id=group_id)
+
+    # Test nested searches
+    res = admin.get_subgroups(group=main_group, path="/main-group/subgroup-2/subsubgroup-1")
+    assert res is not None, res
+    assert res["id"] == subsubgroup_id_1
+
+    # Test empty search
+    res = admin.get_subgroups(group=main_group, path="/none")
+    assert res is None, res
+
+    # Test get group by path
+    res = admin.get_group_by_path(path="/main-group/subgroup-1")
+    assert res is None, res
+
+    res = admin.get_group_by_path(path="/main-group/subgroup-1", search_in_subgroups=True)
+    assert res is not None, res
+    assert res["id"] == subgroup_id_1, res
+
+    res = admin.get_group_by_path(
+        path="/main-group/subgroup-2/subsubgroup-1/test", search_in_subgroups=True
+    )
+    assert res is None, res
+
+    res = admin.get_group_by_path(
+        path="/main-group/subgroup-2/subsubgroup-1", search_in_subgroups=True
+    )
+    assert res is not None, res
+    assert res["id"] == subsubgroup_id_1
+
+    res = admin.get_group_by_path(path="/main-group")
+    assert res is not None, res
+    assert res["id"] == group_id, res
+
+    # Test group members
+    res = admin.get_group_members(group_id=subgroup_id_2)
+    assert len(res) == 0, res
+
+    # Test fail group members
+    with pytest.raises(KeycloakGetError) as err:
+        admin.get_group_members(group_id="does-not-exist")
+    assert err.match('404: b\'{"error":"Could not find group by id"}\'')
+
+    res = admin.group_user_add(user_id=user, group_id=subgroup_id_2)
+    assert res == dict(), res
+
+    res = admin.get_group_members(group_id=subgroup_id_2)
+    assert len(res) == 1, res
+    assert res[0]["id"] == user
+
+    # Test get group members query
+    res = admin.get_group_members(group_id=subgroup_id_2, query={"max": 10})
+    assert len(res) == 1, res
+    assert res[0]["id"] == user
+
+    with pytest.raises(KeycloakDeleteError) as err:
+        admin.group_user_remove(user_id="does-not-exist", group_id=subgroup_id_2)
+    assert err.match('404: b\'{"error":"User not found"}\''), err
+
+    res = admin.group_user_remove(user_id=user, group_id=subgroup_id_2)
+    assert res == dict(), res
+
+    # Test set permissions
+    res = admin.group_set_permissions(group_id=subgroup_id_2, enabled=True)
+    assert res["enabled"], res
+    res = admin.group_set_permissions(group_id=subgroup_id_2, enabled=False)
+    assert not res["enabled"], res
+    with pytest.raises(KeycloakPutError) as err:
+        admin.group_set_permissions(group_id=subgroup_id_2, enabled="blah")
+    assert err.match('500: b\'{"error":"unknown_error"}\''), err
+
+    # Test update group
+    res = admin.update_group(group_id=subgroup_id_2, payload={"name": "new-subgroup-2"})
+    assert res == dict(), res
+    assert admin.get_group(group_id=subgroup_id_2)["name"] == "new-subgroup-2"
+
+    # test update fail
+    with pytest.raises(KeycloakPutError) as err:
+        admin.update_group(group_id="does-not-exist", payload=dict())
+    assert err.match('404: b\'{"error":"Could not find group by id"}\''), err
+
+    # Test delete
+    res = admin.delete_group(group_id=group_id)
+    assert res == dict(), res
+    assert len(admin.get_groups()) == 0
+
+    # Test delete fail
+    with pytest.raises(KeycloakDeleteError) as err:
+        admin.delete_group(group_id="does-not-exist")
+    assert err.match('404: b\'{"error":"Could not find group by id"}\''), err

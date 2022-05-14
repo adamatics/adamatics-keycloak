@@ -41,3 +41,12 @@ def user(admin: KeycloakAdmin, realm: str) -> str:
     user_id = admin.create_user(payload={"username": username, "email": f"{username}@test.test"})
     yield user_id
     admin.delete_user(user_id=user_id)
+
+
+@pytest.fixture
+def group(admin: KeycloakAdmin, realm: str) -> str:
+    admin.realm_name = realm
+    group_name = str(uuid.uuid4())
+    group_id = admin.create_group(payload={"name": group_name})
+    yield group_id
+    admin.delete_group(group_id=group_id)
