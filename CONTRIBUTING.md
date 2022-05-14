@@ -11,7 +11,7 @@ virtual environment and install the necessary requirements. Example
 
 ```sh
 python -m venv venv
-source venv/bin/active
+source venv/bin/activate
 python -m pip install -U pip
 python -m pip install -r requirements.txt
 python -m pip install -r dev-requirements.txt
