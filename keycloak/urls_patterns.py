@@ -93,7 +93,9 @@ URL_ADMIN_CLIENT_AUTHZ_SETTINGS = URL_ADMIN_CLIENT + "/authz/resource-server/set
 URL_ADMIN_CLIENT_AUTHZ_RESOURCES = URL_ADMIN_CLIENT + "/authz/resource-server/resource?max=-1"
 URL_ADMIN_CLIENT_AUTHZ_SCOPES = URL_ADMIN_CLIENT + "/authz/resource-server/scope?max=-1"
 URL_ADMIN_CLIENT_AUTHZ_PERMISSIONS = URL_ADMIN_CLIENT + "/authz/resource-server/permission?max=-1"
-URL_ADMIN_CLIENT_AUTHZ_POLICIES = URL_ADMIN_CLIENT + "/authz/resource-server/policy?max=-1"
+URL_ADMIN_CLIENT_AUTHZ_POLICIES = (
+    URL_ADMIN_CLIENT + "/authz/resource-server/policy?max=-1&permission=false"
+)
 URL_ADMIN_CLIENT_AUTHZ_ROLE_BASED_POLICY = (
     URL_ADMIN_CLIENT + "/authz/resource-server/policy/role?max=-1"
 )
