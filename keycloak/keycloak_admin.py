@@ -860,7 +860,7 @@ class KeycloakAdmin:
         # went through the tree without hits
         return None
 
-    def get_group_members(self, group_id, **query):
+    def get_group_members(self, group_id, query=None):
         """
         Get members by group id. Returns group members
 
@@ -872,6 +872,7 @@ class KeycloakAdmin:
         (see https://www.keycloak.org/docs-api/18.0/rest-api/index.html#_getmembers)
         :return: Keycloak server response (UserRepresentation)
         """
+        query = query or {}
         params_path = {"realm-name": self.realm_name, "id": group_id}
         url = URL_ADMIN_GROUP_MEMBERS.format(**params_path)
 
@@ -920,7 +921,7 @@ class KeycloakAdmin:
         GroupRepresentation
         https://www.keycloak.org/docs-api/18.0/rest-api/#_grouprepresentation
 
-        :return: Http response
+        :return: Group id for newly created group or None for an existing group
         """
 
         if parent is None:
@@ -937,9 +938,14 @@ class KeycloakAdmin:
                 URL_ADMIN_GROUP_CHILD.format(**params_path), data=json.dumps(payload)
             )
 
-        return raise_error_from_response(
+        raise_error_from_response(
             data_raw, KeycloakPostError, expected_codes=[201], skip_exists=skip_exists
         )
+        try:
+            _last_slash_idx = data_raw.headers["Location"].rindex("/")
+            return data_raw.headers["Location"][_last_slash_idx + 1 :]  # noqa: E203
+        except KeyError:
+            return
 
     def update_group(self, group_id, payload):
         """
