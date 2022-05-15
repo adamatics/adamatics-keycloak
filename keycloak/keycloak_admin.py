@@ -1355,16 +1355,23 @@ class KeycloakAdmin:
         :param client_role_id: id of client (not client-id)
         :param payload: RoleRepresentation
         :param skip_exists: If true then do not raise an error if client role already exists
-        :return: Keycloak server response (RoleRepresentation)
+        :return: Client role name
         """
+
+        if skip_exists:
+            res = self.get_client_role(client_id=client_role_id, role_name=payload["name"])
+            if res:
+                return res["name"]
 
         params_path = {"realm-name": self.realm_name, "id": client_role_id}
         data_raw = self.raw_post(
             urls_patterns.URL_ADMIN_CLIENT_ROLES.format(**params_path), data=json.dumps(payload)
         )
-        return raise_error_from_response(
+        raise_error_from_response(
             data_raw, KeycloakPostError, expected_codes=[201], skip_exists=skip_exists
         )
+        _last_slash_idx = data_raw.headers["Location"].rindex("/")
+        return data_raw.headers["Location"][_last_slash_idx + 1 :]  # noqa: E203
 
     def add_composite_client_roles_to_role(self, client_role_id, role_name, roles):
         """
@@ -1384,6 +1391,24 @@ class KeycloakAdmin:
         )
         return raise_error_from_response(data_raw, KeycloakPostError, expected_codes=[204])
 
+    def update_client_role(self, client_role_id, role_name, payload):
+        """
+        Update a client role
+
+        RoleRepresentation
+        https://www.keycloak.org/docs-api/18.0/rest-api/index.html#_rolerepresentation
+
+        :param client_role_id: id of client (not client-id)
+        :param role_name: role's name (not id!)
+        :param payload: RoleRepresentation
+        """
+        params_path = {"realm-name": self.realm_name, "id": client_role_id, "role-name": role_name}
+        data_raw = self.raw_put(
+            urls_patterns.URL_ADMIN_CLIENT_ROLE.format(**params_path),
+            data=json.dumps(payload),
+        )
+        return raise_error_from_response(data_raw, KeycloakPutError, expected_codes=[204])
+
     def delete_client_role(self, client_role_id, role_name):
         """
         Delete a client role
@@ -1392,7 +1417,7 @@ class KeycloakAdmin:
         https://www.keycloak.org/docs-api/18.0/rest-api/index.html#_rolerepresentation
 
         :param client_role_id: id of client (not client-id)
-        :param role_name: role’s name (not id!)
+        :param role_name: role's name (not id!)
         """
         params_path = {"realm-name": self.realm_name, "id": client_role_id, "role-name": role_name}
         data_raw = self.raw_delete(urls_patterns.URL_ADMIN_CLIENT_ROLE.format(**params_path))
