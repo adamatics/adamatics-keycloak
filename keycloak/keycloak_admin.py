@@ -28,6 +28,7 @@ import json
 from builtins import isinstance
 from typing import Iterable
 
+from . import urls_patterns
 from .connection import ConnectionManager
 from .exceptions import (
     KeycloakDeleteError,
@@ -37,7 +38,6 @@ from .exceptions import (
     raise_error_from_response,
 )
 from .keycloak_openid import KeycloakOpenID
-from . import urls_patterns
 
 
 class KeycloakAdmin:
