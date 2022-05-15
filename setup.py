@@ -11,6 +11,10 @@ with open("requirements.txt", "r") as fh:
 with open("dev-requirements.txt", "r") as fh:
     dev_reqs = fh.read().split("\n")
 
+with open("docs-requirements.txt", "r") as fh:
+    docs_reqs = fh.read().split("\n")
+
+
 VERSIONFILE = "keycloak/_version.py"
 verstrline = open(VERSIONFILE, "rt").read()
 VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
@@ -35,6 +39,7 @@ setup(
     packages=["keycloak"],
     install_requires=reqs,
     tests_require=dev_reqs,
+    extras_require={"docs": docs_reqs},
     python_requires=">=3.7",
     classifiers=[
         "Programming Language :: Python :: 3",
