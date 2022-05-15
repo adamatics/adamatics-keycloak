@@ -698,3 +698,196 @@ def test_clients(admin: KeycloakAdmin, realm: str):
     with pytest.raises(KeycloakDeleteError) as err:
         admin.delete_client(client_id=auth_client_id)
     assert err.match('404: b\'{"error":"Could not find client"}\'')
+
+
+def test_realm_roles(admin: KeycloakAdmin, realm: str):
+    admin.realm_name = realm
+
+    # Test get realm roles
+    roles = admin.get_realm_roles()
+    assert len(roles) == 3, roles
+    role_names = [x["name"] for x in roles]
+    assert "uma_authorization" in role_names, role_names
+    assert "offline_access" in role_names, role_names
+
+    # Test empty members
+    with pytest.raises(KeycloakGetError) as err:
+        admin.get_realm_role_members(role_name="does-not-exist")
+    assert err.match('404: b\'{"error":"Could not find role"}\'')
+    members = admin.get_realm_role_members(role_name="offline_access")
+    assert members == list(), members
+
+    # Test create realm role
+    role_id = admin.create_realm_role(payload={"name": "test-realm-role"})
+    assert role_id, role_id
+    with pytest.raises(KeycloakPostError) as err:
+        admin.create_realm_role(payload={"name": "test-realm-role"})
+    assert err.match('409: b\'{"errorMessage":"Role with name test-realm-role already exists"}\'')
+    role_id_2 = admin.create_realm_role(payload={"name": "test-realm-role"}, skip_exists=True)
+    assert role_id == role_id_2
+
+    # Test update realm role
+    res = admin.update_realm_role(
+        role_name="test-realm-role", payload={"name": "test-realm-role-update"}
+    )
+    assert res == dict(), res
+    with pytest.raises(KeycloakPutError) as err:
+        admin.update_realm_role(
+            role_name="test-realm-role", payload={"name": "test-realm-role-update"}
+        )
+    assert err.match('404: b\'{"error":"Could not find role"}\''), err
+
+    # Test realm role user assignment
+    user_id = admin.create_user(payload={"username": "role-testing", "email": "test@test.test"})
+    with pytest.raises(KeycloakPostError) as err:
+        admin.assign_realm_roles(user_id=user_id, roles=["bad"])
+    assert err.match('500: b\'{"error":"unknown_error"}\'')
+    res = admin.assign_realm_roles(
+        user_id=user_id,
+        roles=[
+            admin.get_realm_role(role_name="offline_access"),
+            admin.get_realm_role(role_name="test-realm-role-update"),
+        ],
+    )
+    assert res == dict(), res
+    assert admin.get_user(user_id=user_id)["username"] in [
+        x["username"] for x in admin.get_realm_role_members(role_name="offline_access")
+    ]
+    assert admin.get_user(user_id=user_id)["username"] in [
+        x["username"] for x in admin.get_realm_role_members(role_name="test-realm-role-update")
+    ]
+
+    roles = admin.get_realm_roles_of_user(user_id=user_id)
+    assert len(roles) == 3
+    assert "offline_access" in [x["name"] for x in roles]
+    assert "test-realm-role-update" in [x["name"] for x in roles]
+
+    with pytest.raises(KeycloakDeleteError) as err:
+        admin.delete_realm_roles_of_user(user_id=user_id, roles=["bad"])
+    assert err.match('500: b\'{"error":"unknown_error"}\'')
+    res = admin.delete_realm_roles_of_user(
+        user_id=user_id, roles=[admin.get_realm_role(role_name="offline_access")]
+    )
+    assert res == dict(), res
+    assert admin.get_realm_role_members(role_name="offline_access") == list()
+    roles = admin.get_realm_roles_of_user(user_id=user_id)
+    assert len(roles) == 2
+    assert "offline_access" not in [x["name"] for x in roles]
+    assert "test-realm-role-update" in [x["name"] for x in roles]
+
+    roles = admin.get_available_realm_roles_of_user(user_id=user_id)
+    assert len(roles) == 2
+    assert "offline_access" in [x["name"] for x in roles]
+    assert "uma_authorization" in [x["name"] for x in roles]
+
+    # Test realm role group assignment
+    group_id = admin.create_group(payload={"name": "test-group"})
+    with pytest.raises(KeycloakPostError) as err:
+        admin.assign_group_realm_roles(group_id=group_id, roles=["bad"])
+    assert err.match('500: b\'{"error":"unknown_error"}\'')
+    res = admin.assign_group_realm_roles(
+        group_id=group_id,
+        roles=[
+            admin.get_realm_role(role_name="offline_access"),
+            admin.get_realm_role(role_name="test-realm-role-update"),
+        ],
+    )
+    assert res == dict(), res
+
+    roles = admin.get_group_realm_roles(group_id=group_id)
+    assert len(roles) == 2
+    assert "offline_access" in [x["name"] for x in roles]
+    assert "test-realm-role-update" in [x["name"] for x in roles]
+
+    with pytest.raises(KeycloakDeleteError) as err:
+        admin.delete_group_realm_roles(group_id=group_id, roles=["bad"])
+    assert err.match('500: b\'{"error":"unknown_error"}\'')
+    res = admin.delete_group_realm_roles(
+        group_id=group_id, roles=[admin.get_realm_role(role_name="offline_access")]
+    )
+    assert res == dict(), res
+    roles = admin.get_group_realm_roles(group_id=group_id)
+    assert len(roles) == 1
+    assert "test-realm-role-update" in [x["name"] for x in roles]
+
+    # Test composite realm roles
+    composite_role = admin.create_realm_role(payload={"name": "test-composite-role"})
+    with pytest.raises(KeycloakPostError) as err:
+        admin.add_composite_realm_roles_to_role(role_name=composite_role, roles=["bad"])
+    assert err.match('500: b\'{"error":"unknown_error"}\'')
+    res = admin.add_composite_realm_roles_to_role(
+        role_name=composite_role, roles=[admin.get_realm_role(role_name="test-realm-role-update")]
+    )
+    assert res == dict(), res
+
+    res = admin.get_composite_realm_roles_of_role(role_name=composite_role)
+    assert len(res) == 1
+    assert "test-realm-role-update" in res[0]["name"]
+    with pytest.raises(KeycloakGetError) as err:
+        admin.get_composite_realm_roles_of_role(role_name="bad")
+    assert err.match('404: b\'{"error":"Could not find role"}\'')
+
+    res = admin.get_composite_realm_roles_of_user(user_id=user_id)
+    assert len(res) == 4
+    assert "offline_access" in {x["name"] for x in res}
+    assert "test-realm-role-update" in {x["name"] for x in res}
+    assert "uma_authorization" in {x["name"] for x in res}
+    with pytest.raises(KeycloakGetError) as err:
+        admin.get_composite_realm_roles_of_user(user_id="bad")
+    assert err.match('404: b\'{"error":"User not found"}\'')
+
+    with pytest.raises(KeycloakDeleteError) as err:
+        admin.remove_composite_realm_roles_to_role(role_name=composite_role, roles=["bad"])
+    assert err.match('500: b\'{"error":"unknown_error"}\'')
+    res = admin.remove_composite_realm_roles_to_role(
+        role_name=composite_role, roles=[admin.get_realm_role(role_name="test-realm-role-update")]
+    )
+    assert res == dict(), res
+
+    res = admin.get_composite_realm_roles_of_role(role_name=composite_role)
+    assert len(res) == 0
+
+    # Test delete realm role
+    res = admin.delete_realm_role(role_name=composite_role)
+    assert res == dict(), res
+    with pytest.raises(KeycloakDeleteError) as err:
+        admin.delete_realm_role(role_name=composite_role)
+    assert err.match('404: b\'{"error":"Could not find role"}\'')
+
+
+def test_email(admin: KeycloakAdmin, user: str):
+    # Emails will fail as we don't have SMTP test setup
+    with pytest.raises(KeycloakPutError) as err:
+        admin.send_update_account(user_id=user, payload=dict())
+    assert err.match('500: b\'{"error":"unknown_error"}\'')
+
+    admin.update_user(user_id=user, payload={"enabled": True})
+    with pytest.raises(KeycloakPutError) as err:
+        admin.send_verify_email(user_id=user)
+    assert err.match('500: b\'{"errorMessage":"Failed to send execute actions email"}\'')
+
+
+def test_get_sessions(admin: KeycloakAdmin):
+    sessions = admin.get_sessions(user_id=admin.get_user_id(username=admin.username))
+    assert len(sessions) >= 1
+    with pytest.raises(KeycloakGetError) as err:
+        admin.get_sessions(user_id="bad")
+    assert err.match('404: b\'{"error":"User not found"}\'')
+
+
+def test_get_client_installation_provider(admin: KeycloakAdmin, client: str):
+    with pytest.raises(KeycloakGetError) as err:
+        admin.get_client_installation_provider(client_id=client, provider_id="bad")
+    assert err.match('404: b\'{"error":"Unknown Provider"}\'')
+
+    installation = admin.get_client_installation_provider(
+        client_id=client, provider_id="keycloak-oidc-keycloak-json"
+    )
+    assert set(installation.keys()) == {
+        "auth-server-url",
+        "confidential-port",
+        "credentials",
+        "realm",
+        "resource",
+        "ssl-required",
+    }

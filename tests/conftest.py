@@ -50,3 +50,12 @@ def group(admin: KeycloakAdmin, realm: str) -> str:
     group_id = admin.create_group(payload={"name": group_name})
     yield group_id
     admin.delete_group(group_id=group_id)
+
+
+@pytest.fixture
+def client(admin: KeycloakAdmin, realm: str) -> str:
+    admin.realm_name = realm
+    client = str(uuid.uuid4())
+    client_id = admin.create_client(payload={"name": client, "clientId": client})
+    yield client_id
+    admin.delete_client(client_id=client_id)
