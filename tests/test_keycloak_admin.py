@@ -855,6 +855,168 @@ def test_realm_roles(admin: KeycloakAdmin, realm: str):
     assert err.match('404: b\'{"error":"Could not find role"}\'')
 
 
+def test_client_roles(admin: KeycloakAdmin, client: str):
+    # Test get client roles
+    res = admin.get_client_roles(client_id=client)
+    assert len(res) == 0
+    with pytest.raises(KeycloakGetError) as err:
+        admin.get_client_roles(client_id="bad")
+    assert err.match('404: b\'{"error":"Could not find client"}\'')
+
+    # Test create client role
+    client_role_id = admin.create_client_role(
+        client_role_id=client, payload={"name": "client-role-test"}
+    )
+    with pytest.raises(KeycloakPostError) as err:
+        admin.create_client_role(client_role_id=client, payload={"name": "client-role-test"})
+    assert err.match('409: b\'{"errorMessage":"Role with name client-role-test already exists"}\'')
+    client_role_id_2 = admin.create_client_role(
+        client_role_id=client, payload={"name": "client-role-test"}, skip_exists=True
+    )
+    assert client_role_id == client_role_id_2
+
+    # Test get client role
+    res = admin.get_client_role(client_id=client, role_name="client-role-test")
+    assert res["name"] == client_role_id
+    with pytest.raises(KeycloakGetError) as err:
+        admin.get_client_role(client_id=client, role_name="bad")
+    assert err.match('404: b\'{"error":"Could not find role"}\'')
+
+    res_ = admin.get_client_role_id(client_id=client, role_name="client-role-test")
+    assert res_ == res["id"]
+    with pytest.raises(KeycloakGetError) as err:
+        admin.get_client_role_id(client_id=client, role_name="bad")
+    assert err.match('404: b\'{"error":"Could not find role"}\'')
+    assert len(admin.get_client_roles(client_id=client)) == 1
+
+    # Test update client role
+    res = admin.update_client_role(
+        client_role_id=client,
+        role_name="client-role-test",
+        payload={"name": "client-role-test-update"},
+    )
+    assert res == dict()
+    with pytest.raises(KeycloakPutError) as err:
+        res = admin.update_client_role(
+            client_role_id=client,
+            role_name="client-role-test",
+            payload={"name": "client-role-test-update"},
+        )
+    assert err.match('404: b\'{"error":"Could not find role"}\'')
+
+    # Test user with client role
+    res = admin.get_client_role_members(client_id=client, role_name="client-role-test-update")
+    assert len(res) == 0
+    with pytest.raises(KeycloakGetError) as err:
+        admin.get_client_role_members(client_id=client, role_name="bad")
+    assert err.match('404: b\'{"error":"Could not find role"}\'')
+
+    user_id = admin.create_user(payload={"username": "test", "email": "test@test.test"})
+    with pytest.raises(KeycloakPostError) as err:
+        admin.assign_client_role(user_id=user_id, client_id=client, roles=["bad"])
+    assert err.match('500: b\'{"error":"unknown_error"}\'')
+    res = admin.assign_client_role(
+        user_id=user_id,
+        client_id=client,
+        roles=[admin.get_client_role(client_id=client, role_name="client-role-test-update")],
+    )
+    assert res == dict()
+    assert (
+        len(admin.get_client_role_members(client_id=client, role_name="client-role-test-update"))
+        == 1
+    )
+
+    roles = admin.get_client_roles_of_user(user_id=user_id, client_id=client)
+    assert len(roles) == 1, roles
+    with pytest.raises(KeycloakGetError) as err:
+        admin.get_client_roles_of_user(user_id=user_id, client_id="bad")
+    assert err.match('404: b\'{"error":"Client not found"}\'')
+
+    roles = admin.get_composite_client_roles_of_user(user_id=user_id, client_id=client)
+    assert len(roles) == 1, roles
+    with pytest.raises(KeycloakGetError) as err:
+        admin.get_composite_client_roles_of_user(user_id=user_id, client_id="bad")
+    assert err.match('404: b\'{"error":"Client not found"}\'')
+
+    roles = admin.get_available_client_roles_of_user(user_id=user_id, client_id=client)
+    assert len(roles) == 0, roles
+    with pytest.raises(KeycloakGetError) as err:
+        admin.get_composite_client_roles_of_user(user_id=user_id, client_id="bad")
+    assert err.match('404: b\'{"error":"Client not found"}\'')
+
+    with pytest.raises(KeycloakDeleteError) as err:
+        admin.delete_client_roles_of_user(user_id=user_id, client_id=client, roles=["bad"])
+    assert err.match('500: b\'{"error":"unknown_error"}\'')
+    admin.delete_client_roles_of_user(
+        user_id=user_id,
+        client_id=client,
+        roles=[admin.get_client_role(client_id=client, role_name="client-role-test-update")],
+    )
+    assert len(admin.get_client_roles_of_user(user_id=user_id, client_id=client)) == 0
+
+    # Test groups and client roles
+    res = admin.get_client_role_groups(client_id=client, role_name="client-role-test-update")
+    assert len(res) == 0
+    with pytest.raises(KeycloakGetError) as err:
+        admin.get_client_role_groups(client_id=client, role_name="bad")
+    assert err.match('404: b\'{"error":"Could not find role"}\'')
+
+    group_id = admin.create_group(payload={"name": "test-group"})
+    res = admin.get_group_client_roles(group_id=group_id, client_id=client)
+    assert len(res) == 0
+    with pytest.raises(KeycloakGetError) as err:
+        admin.get_group_client_roles(group_id=group_id, client_id="bad")
+    assert err.match('404: b\'{"error":"Client not found"}\'')
+
+    with pytest.raises(KeycloakPostError) as err:
+        admin.assign_group_client_roles(group_id=group_id, client_id=client, roles=["bad"])
+    assert err.match('500: b\'{"error":"unknown_error"}\'')
+    res = admin.assign_group_client_roles(
+        group_id=group_id,
+        client_id=client,
+        roles=[admin.get_client_role(client_id=client, role_name="client-role-test-update")],
+    )
+    assert res == dict()
+    assert (
+        len(admin.get_client_role_groups(client_id=client, role_name="client-role-test-update"))
+        == 1
+    )
+    assert len(admin.get_group_client_roles(group_id=group_id, client_id=client)) == 1
+
+    with pytest.raises(KeycloakDeleteError) as err:
+        admin.delete_group_client_roles(group_id=group_id, client_id=client, roles=["bad"])
+    assert err.match('500: b\'{"error":"unknown_error"}\'')
+    res = admin.delete_group_client_roles(
+        group_id=group_id,
+        client_id=client,
+        roles=[admin.get_client_role(client_id=client, role_name="client-role-test-update")],
+    )
+    assert res == dict()
+
+    # Test composite client roles
+    with pytest.raises(KeycloakPostError) as err:
+        admin.add_composite_client_roles_to_role(
+            client_role_id=client, role_name="client-role-test-update", roles=["bad"]
+        )
+    assert err.match('500: b\'{"error":"unknown_error"}\'')
+    res = admin.add_composite_client_roles_to_role(
+        client_role_id=client,
+        role_name="client-role-test-update",
+        roles=[admin.get_realm_role(role_name="offline_access")],
+    )
+    assert res == dict()
+    assert admin.get_client_role(client_id=client, role_name="client-role-test-update")[
+        "composite"
+    ]
+
+    # Test delete of client role
+    res = admin.delete_client_role(client_role_id=client, role_name="client-role-test-update")
+    assert res == dict()
+    with pytest.raises(KeycloakDeleteError) as err:
+        admin.delete_client_role(client_role_id=client, role_name="client-role-test-update")
+    assert err.match('404: b\'{"error":"Could not find role"}\'')
+
+
 def test_email(admin: KeycloakAdmin, user: str):
     # Emails will fail as we don't have SMTP test setup
     with pytest.raises(KeycloakPutError) as err:

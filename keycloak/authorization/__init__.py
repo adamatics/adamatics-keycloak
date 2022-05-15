@@ -38,7 +38,7 @@ class Authorization:
     """
 
     def __init__(self):
-        self._policies = {}
+        self.policies = {}
 
     @property
     def policies(self):
