@@ -41,6 +41,10 @@ setup(
     tests_require=dev_reqs,
     extras_require={"docs": docs_reqs},
     python_requires=">=3.7",
+    project_urls={
+        "Documentation": "https://adamatics-keycloak.readthedocs.io/en/latest/",
+        "Issue tracker": "https://github.com/adamatics/adamatics-keycloak/issues",
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
