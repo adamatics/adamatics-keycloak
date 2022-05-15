@@ -65,7 +65,6 @@ URL_ADMIN_USER_CLIENT_ROLES_COMPOSITE = (
 )
 URL_ADMIN_USER_GROUP = "admin/realms/{realm-name}/users/{id}/groups/{group-id}"
 URL_ADMIN_USER_GROUPS = "admin/realms/{realm-name}/users/{id}/groups"
-URL_ADMIN_USER_PASSWORD = "admin/realms/{realm-name}/users/{id}/reset-password"
 URL_ADMIN_USER_CREDENTIALS = "admin/realms/{realm-name}/users/{id}/credentials"
 URL_ADMIN_USER_CREDENTIAL = "admin/realms/{realm-name}/users/{id}/credentials/{credential_id}"
 URL_ADMIN_USER_LOGOUT = "admin/realms/{realm-name}/users/{id}/logout"
@@ -161,6 +160,4 @@ URL_ADMIN_USER_FEDERATED_IDENTITY = (
 )
 
 URL_ADMIN_EVENTS = "admin/realms/{realm-name}/events"
-
-URL_ADMIN_DELETE_USER_ROLE = "admin/realms/{realm-name}/users/{id}/role-mappings/realm"
 URL_ADMIN_CLIENT_SESSION_STATS = "admin/realms/{realm-name}/client-session-stats"
