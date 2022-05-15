@@ -41,6 +41,23 @@ from .keycloak_openid import KeycloakOpenID
 
 
 class KeycloakAdmin:
+    """
+    Keycloak Admin client.
+
+    :param server_url: Keycloak server url
+    :param username: admin username
+    :param password: admin password
+    :param totp: Time based OTP
+    :param realm_name: realm name
+    :param client_id: client id
+    :param verify: True if want check connection SSL
+    :param client_secret_key: client secret key
+        (optional, required only for access type confidential)
+    :param custom_headers: dict of custom header to pass to each HTML request
+    :param user_realm_name: The realm name of the user, if different from realm_name
+    :param auto_refresh_token: list of methods that allows automatic token refresh.
+        Ex: ['get', 'put', 'post', 'delete']
+    """
 
     PAGE_SIZE = 100
 
@@ -72,22 +89,6 @@ class KeycloakAdmin:
         user_realm_name=None,
         auto_refresh_token=None,
     ):
-        """
-
-        :param server_url: Keycloak server url
-        :param username: admin username
-        :param password: admin password
-        :param totp: Time based OTP
-        :param realm_name: realm name
-        :param client_id: client id
-        :param verify: True if want check connection SSL
-        :param client_secret_key: client secret key
-        (optional, required only for access type confidential)
-        :param custom_headers: dict of custom header to pass to each HTML request
-        :param user_realm_name: The realm name of the user, if different from realm_name
-        :param auto_refresh_token: list of methods that allows automatic token refresh.
-        ex: ['get', 'put', 'post', 'delete']
-        """
         self.server_url = server_url
         self.username = username
         self.password = password
@@ -441,7 +442,7 @@ class KeycloakAdmin:
 
         :param payload: UserRepresentation
         :param exist_ok: If False, raise KeycloakGetError if username already exists.
-        Otherwise, return existing user ID.
+            Otherwise, return existing user ID.
 
         :return: UserRepresentation
         """
@@ -806,7 +807,7 @@ class KeycloakAdmin:
 
         :param group_id: The group id
         :param query: Additional query parameters
-        (see https://www.keycloak.org/docs-api/18.0/rest-api/index.html#_getmembers)
+            (see https://www.keycloak.org/docs-api/18.0/rest-api/index.html#_getmembers)
         :return: Keycloak server response (UserRepresentation)
         """
         query = query or {}
@@ -994,7 +995,7 @@ class KeycloakAdmin:
         This is required for further actions against this client.
 
         :param client_name: name in ClientRepresentation
-        https://www.keycloak.org/docs-api/18.0/rest-api/index.html#_clientrepresentation
+            https://www.keycloak.org/docs-api/18.0/rest-api/index.html#_clientrepresentation
         :return: client_id (uuid as string)
         """
 
@@ -1011,7 +1012,7 @@ class KeycloakAdmin:
         Get authorization json from client.
 
         :param client_id: id in ClientRepresentation
-        https://www.keycloak.org/docs-api/18.0/rest-api/index.html#_clientrepresentation
+            https://www.keycloak.org/docs-api/18.0/rest-api/index.html#_clientrepresentation
         :return: Keycloak server response
         """
 
@@ -1026,9 +1027,9 @@ class KeycloakAdmin:
         Create resources of client.
 
         :param client_id: id in ClientRepresentation
-        https://www.keycloak.org/docs-api/18.0/rest-api/index.html#_clientrepresentation
+            https://www.keycloak.org/docs-api/18.0/rest-api/index.html#_clientrepresentation
         :param payload: ResourceRepresentation
-        https://www.keycloak.org/docs-api/18.0/rest-api/index.html#_resourcerepresentation
+            https://www.keycloak.org/docs-api/18.0/rest-api/index.html#_resourcerepresentation
 
         :return: Keycloak server response
         """
@@ -1048,7 +1049,7 @@ class KeycloakAdmin:
         Get resources from client.
 
         :param client_id: id in ClientRepresentation
-        https://www.keycloak.org/docs-api/18.0/rest-api/index.html#_clientrepresentation
+            https://www.keycloak.org/docs-api/18.0/rest-api/index.html#_clientrepresentation
         :return: Keycloak server response
         """
 
@@ -1063,22 +1064,24 @@ class KeycloakAdmin:
         Create role-based policy of client.
 
         :param client_id: id in ClientRepresentation
-        https://www.keycloak.org/docs-api/18.0/rest-api/index.html#_clientrepresentation
+            https://www.keycloak.org/docs-api/18.0/rest-api/index.html#_clientrepresentation
         :param payload: No Document
-        payload example:
-        payload={
-            "type": "role",
-            "logic": "POSITIVE",
-            "decisionStrategy": "UNANIMOUS",
-            "name": "Policy-1",
-            "roles": [
-                {
-                "id": id
-                }
-            ]
-        }
-
         :return: Keycloak server response
+
+        Payload example::
+
+            payload={
+                "type": "role",
+                "logic": "POSITIVE",
+                "decisionStrategy": "UNANIMOUS",
+                "name": "Policy-1",
+                "roles": [
+                    {
+                    "id": id
+                    }
+                ]
+            }
+
         """
 
         params_path = {"realm-name": self.realm_name, "id": client_id}
@@ -1096,23 +1099,25 @@ class KeycloakAdmin:
         Create resource-based permission of client.
 
         :param client_id: id in ClientRepresentation
-        https://www.keycloak.org/docs-api/18.0/rest-api/index.html#_clientrepresentation
+            https://www.keycloak.org/docs-api/18.0/rest-api/index.html#_clientrepresentation
         :param payload: PolicyRepresentation
-        https://www.keycloak.org/docs-api/18.0/rest-api/index.html#_policyrepresentation
-        payload example:
-        payload={
-            "type": "resource",
-            "logic": "POSITIVE",
-            "decisionStrategy": "UNANIMOUS",
-            "name": "Permission-Name",
-            "resources": [
-                resource_id
-            ],
-            "policies": [
-                policy_id
-            ]
-
+            https://www.keycloak.org/docs-api/18.0/rest-api/index.html#_policyrepresentation
         :return: Keycloak server response
+
+        Payload example::
+
+            payload={
+                "type": "resource",
+                "logic": "POSITIVE",
+                "decisionStrategy": "UNANIMOUS",
+                "name": "Permission-Name",
+                "resources": [
+                    resource_id
+                ],
+                "policies": [
+                    policy_id
+                ]
+
         """
 
         params_path = {"realm-name": self.realm_name, "id": client_id}
@@ -1130,7 +1135,7 @@ class KeycloakAdmin:
         Get scopes from client.
 
         :param client_id: id in ClientRepresentation
-        https://www.keycloak.org/docs-api/18.0/rest-api/index.html#_clientrepresentation
+            https://www.keycloak.org/docs-api/18.0/rest-api/index.html#_clientrepresentation
         :return: Keycloak server response
         """
 
@@ -1143,7 +1148,7 @@ class KeycloakAdmin:
         Get permissions from client.
 
         :param client_id: id in ClientRepresentation
-        https://www.keycloak.org/docs-api/18.0/rest-api/index.html#_clientrepresentation
+            https://www.keycloak.org/docs-api/18.0/rest-api/index.html#_clientrepresentation
         :return: Keycloak server response
         """
 
@@ -1158,7 +1163,7 @@ class KeycloakAdmin:
         Get policies from client.
 
         :param client_id: id in ClientRepresentation
-        https://www.keycloak.org/docs-api/18.0/rest-api/index.html#_clientrepresentation
+            https://www.keycloak.org/docs-api/18.0/rest-api/index.html#_clientrepresentation
         :return: Keycloak server response
         """
 
@@ -1173,7 +1178,7 @@ class KeycloakAdmin:
         Get service account user from client.
 
         :param client_id: id in ClientRepresentation
-        https://www.keycloak.org/docs-api/18.0/rest-api/index.html#_clientrepresentation
+            https://www.keycloak.org/docs-api/18.0/rest-api/index.html#_clientrepresentation
         :return: UserRepresentation
         """
 
@@ -1368,7 +1373,7 @@ class KeycloakAdmin:
         :param client_role_id: id of client (not client-id)
         :param role_name: The name of the role
         :param roles: roles list or role (use RoleRepresentation) to be updated
-        :return Keycloak server response
+        :return: Keycloak server response
         """
 
         payload = roles if isinstance(roles, list) else [roles]
@@ -1400,7 +1405,7 @@ class KeycloakAdmin:
         :param user_id: id of user
         :param client_id: id of client (not client-id)
         :param roles: roles list or role (use RoleRepresentation)
-        :return Keycloak server response
+        :return: Keycloak server response
         """
 
         payload = roles if isinstance(roles, list) else [roles]
@@ -1512,7 +1517,7 @@ class KeycloakAdmin:
 
         :param role_name: The name of the role
         :param roles: roles list or role (use RoleRepresentation) to be updated
-        :return Keycloak server response
+        :return: Keycloak server response
         """
 
         payload = roles if isinstance(roles, list) else [roles]
@@ -1529,7 +1534,7 @@ class KeycloakAdmin:
 
         :param role_name: The name of the role
         :param roles: roles list or role (use RoleRepresentation) to be removed
-        :return Keycloak server response
+        :return: Keycloak server response
         """
 
         payload = roles if isinstance(roles, list) else [roles]
@@ -1545,7 +1550,7 @@ class KeycloakAdmin:
         Get composite roles of the role
 
         :param role_name: The name of the role
-        :return Keycloak server response (array RoleRepresentation)
+        :return: Keycloak server response (array RoleRepresentation)
         """
 
         params_path = {"realm-name": self.realm_name, "role-name": role_name}
@@ -1560,7 +1565,7 @@ class KeycloakAdmin:
 
         :param user_id: id of user
         :param roles: roles list or role (use RoleRepresentation)
-        :return Keycloak server response
+        :return: Keycloak server response
         """
 
         payload = roles if isinstance(roles, list) else [roles]
@@ -1577,7 +1582,7 @@ class KeycloakAdmin:
 
         :param user_id: id of user
         :param roles: roles list or role (use RoleRepresentation)
-        :return Keycloak server response
+        :return: Keycloak server response
         """
 
         payload = roles if isinstance(roles, list) else [roles]
@@ -1630,7 +1635,7 @@ class KeycloakAdmin:
 
         :param group_id: id of groupp
         :param roles: roles list or role (use GroupRoleRepresentation)
-        :return Keycloak server response
+        :return: Keycloak server response
         """
 
         payload = roles if isinstance(roles, list) else [roles]
@@ -1647,7 +1652,7 @@ class KeycloakAdmin:
 
         :param group_id: id of group
         :param roles: roles list or role (use GroupRoleRepresentation)
-        :return Keycloak server response
+        :return: Keycloak server response
         """
 
         payload = roles if isinstance(roles, list) else [roles]
@@ -1676,7 +1681,7 @@ class KeycloakAdmin:
         :param group_id: id of group
         :param client_id: id of client (not client-id)
         :param roles: roles list or role (use GroupRoleRepresentation)
-        :return Keycloak server response
+        :return: Keycloak server response
         """
 
         payload = roles if isinstance(roles, list) else [roles]
@@ -1693,7 +1698,7 @@ class KeycloakAdmin:
 
         :param group_id: id of group
         :param client_id: id of client (not client-id)
-        :return Keycloak server response
+        :return: Keycloak server response
         """
 
         params_path = {"realm-name": self.realm_name, "id": group_id, "client-id": client_id}
@@ -1707,7 +1712,7 @@ class KeycloakAdmin:
         :param group_id: id of group
         :param client_id: id of client (not client-id)
         :param roles: roles list or role (use GroupRoleRepresentation)
-        :return Keycloak server response (array RoleRepresentation)
+        :return: Keycloak server response (array RoleRepresentation)
         """
 
         payload = roles if isinstance(roles, list) else [roles]
@@ -2369,7 +2374,7 @@ class KeycloakAdmin:
 
         :param component_id: Component id
         :param payload: ComponentRepresentation
-        https://www.keycloak.org/docs-api/18.0/rest-api/index.html#_componentrepresentation
+            https://www.keycloak.org/docs-api/18.0/rest-api/index.html#_componentrepresentation
 
         :return: Http response
         """

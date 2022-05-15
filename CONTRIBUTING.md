@@ -47,6 +47,16 @@ tox -e apply-check
 which will apply isort and black formatting for you in the repository. The flake8 problems however need to be resolved
 manually by the developer.
 
+Additionally we require that the documentation pages are built without warnings. This check is also run via tox, using
+the command
+
+```sh
+tox -e docs
+```
+
+The check is also run in the CICD pipelines. We require that the documentation pages built from the code docstrings
+do not create visually "bad" pages.
+
 ## Conventional commits
 
 Commits to this project must adhere to the [Conventional Commits

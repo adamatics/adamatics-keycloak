@@ -49,6 +49,18 @@ from .urls_patterns import (
 
 
 class KeycloakOpenID:
+    """
+    Keycloak OpenID client.
+
+    :param server_url: Keycloak server url
+    :param client_id: client id
+    :param realm_name: realm name
+    :param client_secret_key: client secret key
+    :param verify: True if want check connection SSL
+    :param custom_headers: dict of custom header to pass to each HTML request
+    :param proxies: dict of proxies to sent the request by.
+    """
+
     def __init__(
         self,
         server_url,
@@ -59,16 +71,6 @@ class KeycloakOpenID:
         custom_headers=None,
         proxies=None,
     ):
-        """
-
-        :param server_url: Keycloak server url
-        :param client_id: client id
-        :param realm_name: realm name
-        :param client_secret_key: client secret key
-        :param verify: True if want check connection SSL
-        :param custom_headers: dict of custom header to pass to each HTML request
-        :param proxies: dict of proxies to sent the request by.
-        """
         self.client_id = client_id
         self.client_secret_key = client_secret_key
         self.realm_name = realm_name
@@ -203,8 +205,8 @@ class KeycloakOpenID:
         :param password:
         :param grant_type:
         :param code:
-        :param redirect_uri
-        :param totp
+        :param redirect_uri:
+        :param totp:
         :return:
         """
         params_path = {"realm-name": self.realm_name}

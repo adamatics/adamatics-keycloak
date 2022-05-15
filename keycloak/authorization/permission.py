@@ -31,11 +31,14 @@ class Permission:
 
     X CAN DO Y ON RESOURCE Z
 
-    where …
-        X represents one or more users, roles, or groups, or a combination of them. You can
+    where
+
+    - X represents one or more users, roles, or groups, or a combination of them. You can
         also use claims and context here.
-        Y represents an action to be performed, for example, write, view, and so on.
-        Z represents a protected resource, for example, "/accounts".
+
+    - Y represents an action to be performed, for example, write, view, and so on.
+
+    - Z represents a protected resource, for example, "/accounts".
 
     https://keycloak.gitbooks.io/documentation/authorization_services/topics/permission/overview.html
 

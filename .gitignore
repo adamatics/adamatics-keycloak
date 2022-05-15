@@ -107,3 +107,5 @@ s3air-authz-config.json
 .vscode
 .docker
 .pytest_cache
+_build
+.DS_Store

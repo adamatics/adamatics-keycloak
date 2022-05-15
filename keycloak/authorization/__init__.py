@@ -53,7 +53,7 @@ class Authorization:
         Load policies, roles and permissions (scope/resources).
 
         :param data: keycloak authorization data (dict)
-        :return:
+        :returns: None
         """
         for pol in data["policies"]:
             if pol["type"] == "role":
