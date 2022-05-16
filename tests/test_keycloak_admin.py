@@ -1053,3 +1053,149 @@ def test_get_client_installation_provider(admin: KeycloakAdmin, client: str):
         "resource",
         "ssl-required",
     }
+
+
+def test_auth_flows(admin: KeycloakAdmin, realm: str):
+    admin.realm_name = realm
+
+    res = admin.get_authentication_flows()
+    assert len(res) == 8, res
+    assert set(res[0].keys()) == {
+        "alias",
+        "authenticationExecutions",
+        "builtIn",
+        "description",
+        "id",
+        "providerId",
+        "topLevel",
+    }
+    assert {x["alias"] for x in res} == {
+        "reset credentials",
+        "browser",
+        "http challenge",
+        "registration",
+        "docker auth",
+        "direct grant",
+        "first broker login",
+        "clients",
+    }
+
+    with pytest.raises(KeycloakGetError) as err:
+        admin.get_authentication_flow_for_id(flow_id="bad")
+    assert err.match('404: b\'{"error":"Could not find flow with id"}\'')
+    browser_flow_id = [x for x in res if x["alias"] == "browser"][0]["id"]
+    res = admin.get_authentication_flow_for_id(flow_id=browser_flow_id)
+    assert res["alias"] == "browser"
+
+    # Test copying
+    with pytest.raises(KeycloakPostError) as err:
+        admin.copy_authentication_flow(payload=dict(), flow_alias="bad")
+    assert err.match("404: b''")
+
+    res = admin.copy_authentication_flow(payload={"newName": "test-browser"}, flow_alias="browser")
+    assert res == b"", res
+    assert len(admin.get_authentication_flows()) == 9
+
+    # Test create
+    res = admin.create_authentication_flow(
+        payload={"alias": "test-create", "providerId": "basic-flow"}
+    )
+    assert res == b""
+    with pytest.raises(KeycloakPostError) as err:
+        admin.create_authentication_flow(payload={"alias": "test-create", "builtIn": False})
+    assert err.match('409: b\'{"errorMessage":"Flow test-create already exists"}\'')
+    assert admin.create_authentication_flow(
+        payload={"alias": "test-create"}, skip_exists=True
+    ) == {"msg": "Already exists"}
+
+    # Test flow executions
+    res = admin.get_authentication_flow_executions(flow_alias="browser")
+    assert len(res) == 8, res
+    with pytest.raises(KeycloakGetError) as err:
+        admin.get_authentication_flow_executions(flow_alias="bad")
+    assert err.match("404: b''")
+    exec_id = res[0]["id"]
+
+    res = admin.get_authentication_flow_execution(execution_id=exec_id)
+    assert set(res.keys()) == {
+        "alternative",
+        "authenticator",
+        "authenticatorFlow",
+        "conditional",
+        "disabled",
+        "enabled",
+        "id",
+        "parentFlow",
+        "priority",
+        "required",
+        "requirement",
+    }, res
+    with pytest.raises(KeycloakGetError) as err:
+        admin.get_authentication_flow_execution(execution_id="bad")
+    assert err.match('404: b\'{"error":"Illegal execution"}\'')
+
+    with pytest.raises(KeycloakPostError) as err:
+        admin.create_authentication_flow_execution(payload=dict(), flow_alias="browser")
+    assert err.match('400: b\'{"error":"It is illegal to add execution to a built in flow"}\'')
+
+    res = admin.create_authentication_flow_execution(
+        payload={"provider": "auth-cookie"}, flow_alias="test-create"
+    )
+    assert res == b""
+    assert len(admin.get_authentication_flow_executions(flow_alias="test-create")) == 1
+
+    with pytest.raises(KeycloakPutError) as err:
+        admin.update_authentication_flow_executions(
+            payload={"required": "yes"}, flow_alias="test-create"
+        )
+    assert err.match('400: b\'{"error":"Unrecognized field')
+    payload = admin.get_authentication_flow_executions(flow_alias="test-create")[0]
+    payload["displayName"] = "test"
+    res = admin.update_authentication_flow_executions(payload=payload, flow_alias="test-create")
+    assert res
+
+    exec_id = admin.get_authentication_flow_executions(flow_alias="test-create")[0]["id"]
+    res = admin.delete_authentication_flow_execution(execution_id=exec_id)
+    assert res == dict()
+    with pytest.raises(KeycloakDeleteError) as err:
+        admin.delete_authentication_flow_execution(execution_id=exec_id)
+    assert err.match('404: b\'{"error":"Illegal execution"}\'')
+
+    # Test subflows
+    res = admin.create_authentication_flow_subflow(
+        payload={
+            "alias": "test-subflow",
+            "provider": "basic-flow",
+            "type": "something",
+            "description": "something",
+        },
+        flow_alias="test-browser",
+    )
+    assert res == b""
+    with pytest.raises(KeycloakPostError) as err:
+        admin.create_authentication_flow_subflow(
+            payload={"alias": "test-subflow", "providerId": "basic-flow"},
+            flow_alias="test-browser",
+        )
+    assert err.match('409: b\'{"errorMessage":"New flow alias name already exists"}\'')
+    res = admin.create_authentication_flow_subflow(
+        payload={
+            "alias": "test-subflow",
+            "provider": "basic-flow",
+            "type": "something",
+            "description": "something",
+        },
+        flow_alias="test-create",
+        skip_exists=True,
+    )
+    assert res == {"msg": "Already exists"}
+
+    # Test delete auth flow
+    flow_id = [x for x in admin.get_authentication_flows() if x["alias"] == "test-browser"][0][
+        "id"
+    ]
+    res = admin.delete_authentication_flow(flow_id=flow_id)
+    assert res == dict()
+    with pytest.raises(KeycloakDeleteError) as err:
+        admin.delete_authentication_flow(flow_id=flow_id)
+    assert err.match('404: b\'{"error":"Could not find flow with id"}\'')
