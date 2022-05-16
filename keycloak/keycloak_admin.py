@@ -1821,7 +1821,7 @@ class KeycloakAdmin:
 
     def get_authentication_flow_for_id(self, flow_id):
         """
-        Get one authentication flow by it's id/alias. Returns all flow details
+        Get one authentication flow by it's id. Returns all flow details
 
         AuthenticationFlowRepresentation
         https://www.keycloak.org/docs-api/18.0/rest-api/index.html#_authenticationflowrepresentation
