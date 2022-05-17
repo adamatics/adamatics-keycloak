@@ -4,6 +4,3 @@ line-length = 99
 [tool.isort]
 line_length = 99
 profile = "black"
-
-[tool.flake8]
-max-line-length = 99
